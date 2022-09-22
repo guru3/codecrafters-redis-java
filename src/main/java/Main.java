@@ -29,7 +29,7 @@ public class Main {
 			clientSocket = serverSocket.accept();
 
 			// Prepare to read data sent by client
-            clientRequestReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
+			clientRequestReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
 
 			// Prepare to send data back to client
 			clientResponseWriter = new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8);
@@ -38,8 +38,8 @@ public class Main {
 			String line = clientRequestReader.readLine();
 
 			// Send response back to client
-            clientResponseWriter.write("+PONG\r\n");
-            clientResponseWriter.flush();
+			clientResponseWriter.write("+PONG\r\n");
+			clientResponseWriter.flush();
 
 		} catch (IOException e) {
 			System.out.println("IOException: " + e.getMessage());
