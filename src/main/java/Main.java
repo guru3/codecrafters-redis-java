@@ -1,6 +1,11 @@
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.BufferedReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+
 
 public class Main {
 
@@ -12,6 +17,9 @@ public class Main {
 
 		ServerSocket serverSocket = null;
 		Socket clientSocket = null;
+		BufferedReader clientRequestReader = null;
+		OutputStreamWriter clientResponseWriter = null;
+
 		try {
 			// Create a socket
 			serverSocket = new ServerSocket(REDIS_PORT);
@@ -20,17 +28,18 @@ public class Main {
 			// Wait for connection from client.
 			clientSocket = serverSocket.accept();
 
-			// Prepare to read data sent by client using ObjectInputStream object
-            ObjectInputStream clientRequestStream = new ObjectInputStream(clientSocket.getInputStream());
+			// Prepare to read data sent by client
+            clientRequestReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
 
-			// Prepare to send data back to client using ObjectOutputStream
-			ObjectOutputStream clientResponseStream = new ObjectOutputStream(clientSocket.getOutputStream());
+			// Prepare to send data back to client
+			clientResponseWriter = new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8);
 
 			// Read the data sent by client
-			String clientMessage = (String) clientRequestStream.readObject();
+			String line = clientRequestReader.readLine();
 
-            // Send response back to client
-            clientResponseStream.writeObject(b"+PONG\r\n")
+			// Send response back to client
+            clientResponseWriter.write("+PONG\r\n");
+            clientResponseWriter.flush();
 
 		} catch (IOException e) {
 			System.out.println("IOException: " + e.getMessage());
@@ -40,11 +49,11 @@ public class Main {
 				if (clientSocket != null) {
 					clientSocket.close();
 			   	}
-				if (clientRequestStream != null) {
-					clientRequestStream.close()
+				if (clientRequestReader != null) {
+					clientRequestReader.close();
 				}
-				if (clientResponseStream != null) {
-					clientResponseStream.close()
+				if (clientResponseWriter != null) {
+					clientResponseWriter.close();
 				}
 			} catch (IOException e) {
 				System.out.println("IOException: " + e.getMessage());
