@@ -34,12 +34,14 @@ public class Main {
 			// Prepare to send data back to client
 			clientResponseWriter = new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8);
 
-			// Read the data sent by client
-			String line = clientRequestReader.readLine();
+			while( true ) {
+				// Read the data sent by client
+				String line = clientRequestReader.readLine();
 
-			// Send response back to client
-			clientResponseWriter.write("+PONG\r\n");
-			clientResponseWriter.flush();
+				// Send response back to client
+				clientResponseWriter.write("+PONG\r\n");
+				clientResponseWriter.flush();
+			}
 
 		} catch (IOException e) {
 			System.out.println("IOException: " + e.getMessage());
