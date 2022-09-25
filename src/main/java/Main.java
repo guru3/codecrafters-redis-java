@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 
 
@@ -48,13 +49,36 @@ class ClientConnectionHandler implements Runnable {
 					} else if (command.equals("set")) {
 						String firstArg = String.valueOf(decodedRequest.get(1));
 						String secondArg = String.valueOf(decodedRequest.get(2));
-						storage.set(firstArg, secondArg);
+						if( decodedRequest.size() > 3 ) {
+							String thirdArg = String.valueOf(decodedRequest.get(3));
+
+							if( thirdArg.equals("px") ) {
+								String fourthArg = String.valueOf(decodedRequest.get(4));
+								long expiryInMilliseconds = 0;
+								try {
+									expiryInMilliseconds = Long.parseLong(fourthArg);
+								} catch (Exception e) {
+									clientResponseWriter.write(String.format("-ERR PX value (%s) is not an integer\r\n", fourthArg));
+								}
+
+								storage.setWithExpiry(firstArg, secondArg, Duration.ofMillis(expiryInMilliseconds));
+							} else {
+								clientResponseWriter.write(String.format("-ERR unknown option for set: %s\r\n", thirdArg));
+							}
+
+						} else {
+							storage.set(firstArg, secondArg);
+						}
 						clientResponseWriter.write("+OK\r\n");
 
 					} else if (command.equals("get")) {
 						String key = String.valueOf(decodedRequest.get(1));
-						clientResponseWriter.write(String.format("+%s\r\n", storage.get(key)));
-
+						Value value = storage.get(key);
+						if( value.isValid ) {
+							clientResponseWriter.write(String.format("+%s\r\n", value.value));
+						} else {
+							clientResponseWriter.write("$-1\r\n");
+						}
 					}else {
 						clientResponseWriter.write("-ERR unknown command\r\n");
 					}
