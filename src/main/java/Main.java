@@ -1,10 +1,10 @@
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.BufferedReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 
 class ClientConnectionHandler implements Runnable {
@@ -17,32 +17,48 @@ class ClientConnectionHandler implements Runnable {
 
 	public void run() {
 
-		BufferedReader clientRequestReader = null;
 		OutputStreamWriter clientResponseWriter = null;
+		RESPDecoder respDecoder = null;
 
 		try {
-			// Prepare to read data sent by client
-			clientRequestReader = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream(), StandardCharsets.UTF_8));
-
 			// Prepare to send data back to client
 			clientResponseWriter = new OutputStreamWriter(this.clientSocket.getOutputStream(), StandardCharsets.UTF_8);
 
-			while( true ) {
-				// Read the data sent by client
-				String line = clientRequestReader.readLine();
+			// Prepare to read data sent by client and decode the request
+			respDecoder = new RESPDecoder(this.clientSocket);
 
-				// Send response back to client
-				clientResponseWriter.write("+PONG\r\n");
-				clientResponseWriter.flush();
+			while( true ) {
+				
+				try {
+					// Process request and generate response
+					List<Object> decodedRequest = respDecoder.processClientRequest();
+					if( decodedRequest.size() == 0 ) {
+						continue;
+					}
+
+					// Send response back to client
+					String command = String.valueOf(decodedRequest.get(0));
+
+					if (command.equals("ping")) {
+						clientResponseWriter.write("+PONG\r\n");
+					} else if (command.equals("echo")) {
+						String response = String.valueOf(decodedRequest.get(1));
+						clientResponseWriter.write(String.format("$%d\r\n%s\r\n", response.length(), response));
+					} else {
+						clientResponseWriter.write("-ERR unknown command\r\n");
+					}
+					clientResponseWriter.flush();
+				} catch (IOException e) {
+					System.out.println("IOException: " + e.getMessage());
+				} catch (Exception e) {
+					System.out.println("Exception: " + e.getMessage());
+				}
 			}
 		} catch (IOException e) {
 			System.out.println("IOException: " + e.getMessage());
 		} finally {
 			try {
-				// Gracefully close stream reader/writer
-				if (clientRequestReader != null) {
-					clientRequestReader.close();
-				}
+				// Gracefully close stream writer
 				if (clientResponseWriter != null) {
 					clientResponseWriter.close();
 				}
