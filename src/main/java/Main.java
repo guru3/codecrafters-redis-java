@@ -19,6 +19,7 @@ class ClientConnectionHandler implements Runnable {
 
 		OutputStreamWriter clientResponseWriter = null;
 		RESPDecoder respDecoder = null;
+		Storage storage = new Storage();
 
 		try {
 			// Prepare to send data back to client
@@ -28,7 +29,7 @@ class ClientConnectionHandler implements Runnable {
 			respDecoder = new RESPDecoder(this.clientSocket);
 
 			while( true ) {
-				
+
 				try {
 					// Process request and generate response
 					List<Object> decodedRequest = respDecoder.processClientRequest();
@@ -44,9 +45,20 @@ class ClientConnectionHandler implements Runnable {
 					} else if (command.equals("echo")) {
 						String response = String.valueOf(decodedRequest.get(1));
 						clientResponseWriter.write(String.format("$%d\r\n%s\r\n", response.length(), response));
-					} else {
+					} else if (command.equals("set")) {
+						String firstArg = String.valueOf(decodedRequest.get(1));
+						String secondArg = String.valueOf(decodedRequest.get(2));
+						storage.set(firstArg, secondArg);
+						clientResponseWriter.write("+OK\r\n");
+
+					} else if (command.equals("get")) {
+						String key = String.valueOf(decodedRequest.get(1));
+						clientResponseWriter.write(String.format("+%s\r\n", storage.get(key)));
+
+					}else {
 						clientResponseWriter.write("-ERR unknown command\r\n");
 					}
+
 					clientResponseWriter.flush();
 				} catch (IOException e) {
 					System.out.println("IOException: " + e.getMessage());
